@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/victorhugoaraujo/fullcycle-graphql/graph/generated"
 	"github.com/victorhugoaraujo/fullcycle-graphql/graph/model"
@@ -13,7 +12,33 @@ import (
 
 // Courses is the resolver for the courses field.
 func (r *categoryResolver) Courses(ctx context.Context, obj *model.Category) ([]*model.Course, error) {
-	panic(fmt.Errorf("not implemented: Courses - courses"))
+	courses, err := r.CourseDB.FindByCategoryID(obj.ID)
+	if err != nil {
+		return nil, err
+	}
+	var coursesModel []*model.Course
+	// _ escaping index
+	for _, course := range courses {
+		coursesModel = append(coursesModel, &model.Course{
+			ID:          course.ID,
+			Name:        course.Name,
+			Description: &course.Description,
+		})
+	}
+	return coursesModel, nil
+}
+
+// Category is the resolver for the category field.
+func (r *courseResolver) Category(ctx context.Context, obj *model.Course) (*model.Category, error) {
+	category, err := r.CategoryDB.FindByCourseID(obj.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.Category{
+		ID:          category.ID,
+		Name:        category.Name,
+		Description: &category.Description,
+	}, nil
 }
 
 // CreateCategory is the resolver for the createCategory field.
@@ -68,7 +93,6 @@ func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var coursesModel []*model.Course
 	// _ escaping index
 	for _, course := range courses {
@@ -76,7 +100,6 @@ func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
 			ID:          course.ID,
 			Name:        course.Name,
 			Description: &course.Description,
-			// Category:    course.CategoryID,
 		})
 	}
 	return coursesModel, nil
@@ -85,6 +108,9 @@ func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
 // Category returns generated.CategoryResolver implementation.
 func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
 
+// Course returns generated.CourseResolver implementation.
+func (r *Resolver) Course() generated.CourseResolver { return &courseResolver{r} }
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -92,5 +118,6 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type categoryResolver struct{ *Resolver }
+type courseResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
